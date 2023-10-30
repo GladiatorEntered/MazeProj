@@ -26,11 +26,6 @@ int helpfunction()
  return 0;
 }
 
-int testfunction()
-{
- //test
- return 0;
-}
 
 bool isborder(Maze *maze, int row, int col, int border)
 {
@@ -40,6 +35,22 @@ bool isborder(Maze *maze, int row, int col, int border)
  if((maze->cells[(row-1)*maze->cols+(col-1)] & c)!=0)return true;
  return false;
 }
+
+int testfunction(Maze *maze)
+{
+ for(int i=1;i<=maze->rows;i++)
+ {
+  for(int j=1;j<=maze->cols;j++)
+  {
+   if(j!=1 && isborder(maze,i,j,'l') && !isborder(maze,i,j-1,'r'))return false;
+   if(j!=maze->cols && isborder(maze,i,j,'r') && !isborder(maze,i,j+1,'l'))return false;
+   if((i+j)%2==0 && i!=1 && isborder(maze,i,j,'u') && !isborder(maze,i-1,j,'b'))return false;
+   if((i+j)%2==1 && i!=maze->rows && isborder(maze,i,j,'b') && !isborder(maze,i+1,j,'u'))return false;
+  }
+ }
+ return true;
+}
+
 
 int startborder(Maze *maze,int r,int c,int leftright)
 {
@@ -160,7 +171,11 @@ int main(int argc, char *argv[])
    i++;
   }
  }
- if(strequal(argv[1],"--test"))return testfunction();
+ if(strequal(argv[1],"--test"))
+ {
+  if(!testfunction(&maze))printf("Bludiste neni platne!\n");else printf("Bludiste je platne!\n");
+  return 0;
+ }
  if(argv[2]==NULL || argv[3]==NULL)
  {
   fprintf(stderr,"Zadejte radek a sloupec pri vstupu!\n");
