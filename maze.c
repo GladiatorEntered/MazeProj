@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#define DIRECTIONS 6
+enum dir{LEFTEVEN, LEFTODD, TOP, RIGHTODD, RIGHTEVEN, BOTTOM};
+enum method{RIGHTHAND, LEFTHAND, SHORTEST};
+
 typedef struct maze
 {
  int rows;
@@ -29,43 +33,65 @@ int helpfunction()
 
 bool isborder(Maze *maze, int row, int col, int border)
 {
- unsigned char c;
- if(border=='l')c=1;else
-  if(border=='r')c=1<<1;else c=1<<2;
- if((maze->cells[(row-1)*maze->cols+(col-1)] & c)!=0)return true;
+ unsigned char mask;
+ if(border==LEFTODD || border==LEFTEVEN)mask=1;else
+  if(border==RIGHTODD || border==RIGHTEVEN)mask=1<<1;else mask=1<<2;
+ if((maze->cells[(row-1)*maze->cols+(col-1)] & mask)!=0)return true;
  return false;
 }
 
 int testfunction(Maze *maze)
 {
- for(int i=1;i<=maze->rows;i++)
+ for(int row=1;row<=maze->rows;row++)
  {
-  for(int j=1;j<=maze->cols;j++)
+  for(int col=1;col<=maze->cols;col++)
   {
-   if(j!=1 && isborder(maze,i,j,'l') && !isborder(maze,i,j-1,'r'))return false;
-   if(j!=maze->cols && isborder(maze,i,j,'r') && !isborder(maze,i,j+1,'l'))return false;
-   if((i+j)%2==0 && i!=1 && isborder(maze,i,j,'u') && !isborder(maze,i-1,j,'b'))return false;
-   if((i+j)%2==1 && i!=maze->rows && isborder(maze,i,j,'b') && !isborder(maze,i+1,j,'u'))return false;
+   if(col!=1 && isborder(maze,row,col,LEFTODD) && !isborder(maze,row,col-1,RIGHTODD))return false;
+   if(col!=maze->cols && isborder(maze,row,col,RIGHTODD) && !isborder(maze,row,col+1,LEFTODD))return false;
+   if((row+col)%2==0 && row!=1 && isborder(maze,row,col,TOP) && !isborder(maze,row-1,col,BOTTOM))return false;
+   if((row+col)%2==1 && row!=maze->rows && isborder(maze,row,col,BOTTOM) && !isborder(maze,row+1,col,TOP))return false;
   }
  }
  return true;
 }
 
 
-int startborder(Maze *maze,int r,int c,int leftright)
+int startborder(Maze *maze,int row,int col,int leftright)
 {
- bool lr = (leftright=='r');	
- if(c==1 && !isborder(maze,r,c,'l'))
+ bool lr = (leftright==RIGHTHAND);	
+ if(col==1 && !isborder(maze,row,col,LEFTODD))
  {
-  if(r%2)return (lr)? 'r':'u';else return (lr)? 'b':'r';
- }else if(c==maze->cols && !isborder(maze,r,c,'r'))
+  if(row%2)return (lr)? RIGHTEVEN:TOP;else return (lr)? BOTTOM:RIGHTODD;
+ }else if(col==maze->cols && !isborder(maze,row,col,RIGHTODD))
  {
-  if(c%2)
+  if(col%2)
   {
-   if(r%2)return (lr)? 'u':'l';else return (lr)? 'l':'b';
-  }else if(r%2)return (lr)? 'l':'b';else return (lr)? 'u':'l';
- }else if(r==1 && c%2 && !isborder(maze,r,c,'u'))return (lr)? 'l':'r';else
-   if (r==maze->rows && c%2==(1+maze->rows%2)%2 && !isborder(maze,r,c,'b'))return (lr)? 'r':'l';
+   if(row%2)return (lr)? TOP:LEFTEVEN;else return (lr)? LEFTODD:BOTTOM;
+  }else if(row%2)return (lr)? LEFTODD:BOTTOM;else return (lr)? TOP:LEFTEVEN;
+ }else if(row==1 && col%2 && !isborder(maze,row,col,'u'))return (lr)? LEFTEVEN:RIGHTEVEN;else
+   if (row==maze->rows && col%2==(1+maze->rows%2)%2 && !isborder(maze,row,col,BOTTOM))return (lr)? RIGHTODD:LEFTODD;
+ return 0;
+}
+
+int step(Maze *maze, int *row, int *col, int leftright, int *dir)
+{
+ int i=0,d,newdir;
+ if(leftright==RIGHTHAND)d=1;else d=DIRECTIONS-1;// misto -1
+ 
+  while(i%DIRECTIONS != *dir)i+=d;  
+  while(isborder(maze,*row,*col,i%DIRECTIONS))i+=(2*d);
+  *dir=(i%DIRECTIONS);
+  newdir=(i-d+DIRECTIONS)%DIRECTIONS;
+ 
+ swith(*dir)
+ {
+  case LEFTODD: case LEFTEVEN: col--;
+  case RIGHTODD: case RIGHTEVEN col++;
+  case BOTTOM: row++;
+  case TOP: row--;
+ }
+ if(*row==0 || *row>maze->rows || *col==0 || *col>maze->cols)return 1;
+ *dir=newdir;
  return 0;
 }
 
@@ -78,42 +104,14 @@ int entermaze(Maze *maze, int row, int col, int leftright)
  return 0;
 }
 
-int step(Maze *maze, int *row, int *col, int leftright, int *dir)
-{
- int odd[]={'l','b','r'};
- int even[]={'l','r','u'};
- int i=0, d,newdir;
- if(leftright=='r')d=1;else d=2;//2 je misto -1
- if((*row + *col)%2)
- {
-  while(*dir != odd[i%3])i=i+d;  
-  while(isborder(maze,*row,*col,odd[i%3]))i=i+d;
-  *dir=odd[i%3];
-  newdir=(d==1)?even[(i%3+2)%3]:even[i%3];//+2 je misto -1
-  }else
- {
-  while(*dir != even[i%3])i=i+d;  
-  while(isborder(maze,*row,*col,even[i%3]))i=i+d;//hledame kam jit, tocime se
-  *dir=even[i%3];//kam jdeme
-  newdir=(d==1)?odd[i%3]:odd[(i%3+1)%3];//dale hledame hranici tamto
- }
- if(*dir=='l')(*col)--;else //krok
-  if(*dir=='r')(*col)++;else
-   if(*dir=='u')(*row)--;else
-    if(*dir=='b')(*row)++;
- if(*row==0 || *row>maze->rows || *col==0 || *col>maze->cols)return 1;
- *dir=newdir;
- return 0;
-}
-
 enum readingmode{SKIPPING, READ_ROWS, READ_COLS};
 
 int main(int argc, char *argv[])
 {
  int lr, k=0;	
  if(strequal(argv[1],"--help"))return helpfunction();else
-  if(strequal(argv[1],"--rpath"))lr='r';else
-   if(strequal(argv[1],"--lpath"))lr='l';else if(!strequal(argv[1],"--test"))
+  if(strequal(argv[1],"--rpath"))lr=RIGHTHAND;else
+   if(strequal(argv[1],"--lpath"))lr=LEFTHAND;else if(!strequal(argv[1],"--test"))
    {
     fprintf(stderr,"Invalid first argument!\n");
     return 0;
