@@ -4,7 +4,7 @@
 #include <ctype.h>
 
 #define DIRECTIONS 6
-enum dir{LEFTEVEN, LEFTODD, TOP, RIGHTODD, RIGHTEVEN, BOTTOM};
+enum dir{LEFTEVEN, LEFTODD, TOP, RIGHTODD, RIGHTEVEN, BOTTOM, ERROR};
 enum method{RIGHTHAND, LEFTHAND, SHORTEST};
 
 typedef struct maze
@@ -70,25 +70,37 @@ int startborder(Maze *maze,int row,int col,int leftright)
   }else if(row%2)return (lr)? LEFTODD:BOTTOM;else return (lr)? TOP:LEFTEVEN;
  }else if(row==1 && col%2 && !isborder(maze,row,col,'u'))return (lr)? LEFTEVEN:RIGHTEVEN;else
    if (row==maze->rows && col%2==(1+maze->rows%2)%2 && !isborder(maze,row,col,BOTTOM))return (lr)? RIGHTODD:LEFTODD;
- return 0;
+ return ERROR;
 }
 
 int step(Maze *maze, int *row, int *col, int leftright, int *dir)
 {
  int i=0,d,newdir;
  if(leftright==RIGHTHAND)d=1;else d=DIRECTIONS-1;// misto -1
- 
-  while(i%DIRECTIONS != *dir)i+=d;  
-  while(isborder(maze,*row,*col,i%DIRECTIONS))i+=(2*d);
+ //printf("Here *dir is %d\n",*dir);
+ while(i%DIRECTIONS != *dir)i+=d;  
+  while(isborder(maze,*row,*col,i%DIRECTIONS))i+=2*(DIRECTIONS-d);
   *dir=(i%DIRECTIONS);
-  newdir=(i-d+DIRECTIONS)%DIRECTIONS;
+  //printf("And here direction is %d\n",*dir);
+  newdir=(i+d)%DIRECTIONS;
+  //printf("New direction is %d\n",newdir);
  
- swith(*dir)
+ switch(*dir)
  {
-  case LEFTODD: case LEFTEVEN: col--;
-  case RIGHTODD: case RIGHTEVEN col++;
-  case BOTTOM: row++;
-  case TOP: row--;
+  case LEFTODD:  
+  case LEFTEVEN:
+	  (*col)--;
+	  break;
+  case RIGHTODD:
+  case RIGHTEVEN:
+	  (*col)++;
+	  break;
+  case BOTTOM:
+	  (*row)++;
+	  break;
+  case TOP:
+	  (*row)--;
+	  break;
  }
  if(*row==0 || *row>maze->rows || *col==0 || *col>maze->cols)return 1;
  *dir=newdir;
@@ -98,9 +110,9 @@ int step(Maze *maze, int *row, int *col, int leftright, int *dir)
 int entermaze(Maze *maze, int row, int col, int leftright)
 {
  int dir = startborder(maze,row,col,leftright);
- if(dir==0)return 1;//neni vstup
- printf("%d %d\n", row, col);
- while(step(maze,&row,&col,leftright,&dir)==0)printf("%d %d\n",row,col);
+ if(dir==ERROR)return 1;//neni vstup
+ printf("%d,%d\n", row, col);
+ while(step(maze,&row,&col,leftright,&dir)==0)printf("%d,%d\n",row,col);
  return 0;
 }
 
@@ -171,7 +183,7 @@ int main(int argc, char *argv[])
  }
  if(strequal(argv[1],"--test"))
  {
-  if(!testfunction(&maze))printf("Bludiste neni platne!\n");else printf("Bludiste je platne!\n");
+  if(!testfunction(&maze))printf("Invalid\n");else printf("Valid\n");
   return 0;
  }
  if(argv[2]==NULL || argv[3]==NULL)
