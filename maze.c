@@ -52,7 +52,7 @@ int iteration(Maze *maze, int *helpmaze, int *queue)
   if(!isborder(maze,cellrow,cellcol,RIGHTODD))//prevod do tvaru 0..n-1 a zpet na 1..n 
   {
    if(cellcol==maze->cols && helpmaze[queue[element]-1]!=1)return queue[element];
-   if(helpmaze[queue[element]]==0 &&cellcol!=maze->cols)//policko napravo==0?
+   if(cellcol!=maze->cols && helpmaze[queue[element]]==0)//policko napravo==0?
    {
     helpmaze[queue[element]]=steps;
     newqueue[j++]=queue[element]+1;    
@@ -61,7 +61,7 @@ int iteration(Maze *maze, int *helpmaze, int *queue)
   if(!isborder(maze,cellrow,cellcol,LEFTODD))
   {
    if(cellcol==1 && helpmaze[queue[element]-1]!=1)return queue[element];
-   if(helpmaze[queue[element]-2]==0 && cellcol!=1)//policko nalevo==0?
+   if(cellcol!=1 && helpmaze[queue[element]-2]==0)//policko nalevo==0?
    {
     helpmaze[queue[element]-2]=steps;
     newqueue[j++]=queue[element]-1;
@@ -69,10 +69,10 @@ int iteration(Maze *maze, int *helpmaze, int *queue)
   }
   if(!isborder(maze,cellrow,cellcol, BOTTOM))//BOTTOM a UP maji stejny output ve funkci isborder()
   {
-   if((cellrow+cellcol)%2)
+   if((cellrow+cellcol)%2)//je mozno necim nahradit
    {
     if(cellrow==maze->rows && helpmaze[queue[element]-1]!=1)return queue[element];
-    if(helpmaze[queue[element]-1+maze->cols]==0 && cellrow!=maze->rows)
+    if(cellrow!=maze->rows && helpmaze[queue[element]-1+maze->cols]==0)
     {
      helpmaze[queue[element]-1+maze->cols]=steps;
      newqueue[j++]=queue[element]+maze->cols;
@@ -80,7 +80,7 @@ int iteration(Maze *maze, int *helpmaze, int *queue)
    }else
    {
     if(cellrow==1 && helpmaze[queue[element]-1]!=1)return queue[element];
-    if(helpmaze[queue[element]-1-maze->cols]==0 && cellrow!=1)
+    if(cellrow!=1 && helpmaze[queue[element]-1-maze->cols]==0)
     {
      helpmaze[queue[element]-1-maze->cols]=steps;//levou cat je mozno vymenin za konstatnu
      newqueue[j++]=queue[element]-maze->cols;
@@ -114,10 +114,9 @@ int shortest(Maze *maze,int row, int col)
  while(helpmaze[cell-1]!=0)
  {
   cell=(cellrow-1)*maze->cols+cellcol;	 
-  printf("%d, %d\n",cellrow,cellcol);	 
-  if(helpmaze[cell-1]==1 || cellcol==3)return 0; 	 
+  printf("%d, %d\n",cellrow,cellcol);	 	 
   int parita=((cellrow+cellcol)%2==0)?1:(-1); 
-  if(!isborder(maze,cellrow,cellcol,RIGHTODD))
+  if(cellcol!=maze->cells && !isborder(maze,cellrow,cellcol,RIGHTODD))//nahradit dvojity if &&
   {
    if(helpmaze[cell]==helpmaze[cell-1]-1)
    {
@@ -125,7 +124,7 @@ int shortest(Maze *maze,int row, int col)
     continue;
    }
   }
-  if(!isborder(maze,cellrow,cellcol,LEFTODD))
+  if(cellcol!=1 && !isborder(maze,cellrow,cellcol,LEFTODD))
   {
    if(helpmaze[cell-2]==helpmaze[cell-1]-1)
    {
@@ -133,7 +132,7 @@ int shortest(Maze *maze,int row, int col)
     continue;
    }
   }
-  if(!isborder(maze,cellrow,cellcol,BOTTOM))
+  if(cellrow!=((parita+1)/2+maze->rows-1)%maze->rows+1 && !isborder(maze,cellrow,cellcol,BOTTOM)) //parita=1 => ((parita+1)/2+maze->rows-1+)%maze->rows+1=1; parita=-1 => -||- = maze->rows
   {
    if(helpmaze[cell-1-parita*maze->cols]==helpmaze[cell-1]-1)
    {
