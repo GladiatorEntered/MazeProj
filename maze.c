@@ -93,6 +93,7 @@ int iteration(Maze *maze, int *helpmaze, int *queue)
  printf("\n");
  steps++;
  for(int i=0;newqueue[i]!=0;i++)queue[i]=newqueue[i];
+ free(newqueue);	
  return 0;
 }
 
@@ -141,6 +142,8 @@ int shortest(Maze *maze,int row, int col)
    }
   }
  }
+ free(queue);
+ free(helpmaze);	
  return 0;
 }
 
