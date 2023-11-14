@@ -119,7 +119,7 @@ int shortest(Maze *maze,int row, int col)
   int parita=((cellrow+cellcol)%2==0)?1:(-1); 
   if(!isborder(maze,cellrow,cellcol,RIGHTODD))
   {
-   if(helpmaze[cell]<helpmaze[cell-1])
+   if(helpmaze[cell]==helpmaze[cell-1]-1)
    {
     cellcol++;	   
     continue;
