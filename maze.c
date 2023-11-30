@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 #define DIRECTIONS 6
 enum dir{LEFTEVEN, LEFTODD, TOP, RIGHTODD, RIGHTEVEN, BOTTOM, ERROR};
@@ -19,21 +20,9 @@ typedef struct maze
  int rows;
  int cols;
  unsigned char *cells;
-}Maze;
+}Map;
 
-int step(Maze *maze, int *row, int *col, int leftright, int *dir);
-
-
-bool strequal(char *str1,char str2[])
-{
- int i=0;
- while(str1[i]==str2[i] && str1[i]!='\0' && str2[i]!='\0')i++;
- if(str1[i]!='\0' || str2[i]!='\0')return false;
- return true;
-}
-
-
-bool isborder(Maze *maze, int row, int col, int border)
+bool isborder(Map *maze, int row, int col, int border)
 {
  unsigned char mask;
  if(border==LEFTODD || border==LEFTEVEN)mask=1;else
@@ -42,7 +31,7 @@ bool isborder(Maze *maze, int row, int col, int border)
  return false;
 }
 
-int iteration(Maze *maze, int *helpmaze, int *queue)
+int iteration(Map *maze, int *helpmaze, int *queue)
 {
  int *newqueue=malloc(maze->rows*maze->cols*sizeof(int));
  for(int i=0;i<maze->rows*maze->cols;i++)newqueue[i]=0;
@@ -114,7 +103,7 @@ int iteration(Maze *maze, int *helpmaze, int *queue)
  return 0;
 }
 
-int shortest(Maze *maze,int row, int col)
+int shortest(Map *maze,int row, int col)
 {
  int *helpmaze=malloc(maze->rows*maze->cols*sizeof(int));
  int *path=malloc(2*maze->rows*maze->cols*sizeof(int));
@@ -169,30 +158,59 @@ int shortest(Maze *maze,int row, int col)
 
 int helpfunction()
 {
+ printf("---HI THERE! THIS PROGRAM IS THE SECOND GladiatorEntered'S PROGRAMMING PROJECT, BELOW YOU CAN READ HOW TO USE IT PROPERLY---\n\n\n");
+ printf("-MOTIVATION-\nPerhaps you have a maze (M rows x N columns) with triangular cells defined with 3-bit numbers. The rightmost bit defines if the cell has a wall on its LEFT border, the one in the middle describes RIGHT border, the leftmost bit describes UPPER/LOWER border. We assume, that the cell with coordinates 1,1 has UPPER border\nThe program solves your maze, it can find the way out using RIGHT HAND RULE or LEFT HAND RULE. It laso can find the SHORTEST path through the maze or test if your maze is valid.\n\n"); 
+ printf("-HOW TO USE-\nPlace text file with your maze in the same folder with this program. Text in the file should look like this:\n");
+ printf("M N\nX X . . . X\nX X . . . X\n. .       .\n. .       .\n. .       .\nX X . . . X\n\n");
+ printf("Then start the program in a bash command line with one of those sets of arguments:\n");
+ printf("\t--help                           To see the tutorial\n");
+ printf("\t--test your_maze.txt             To test if your file describes a valid maze\n");
+ printf("\t--rpath R C your_maze.txt        To show the way out from the cell at R-th row and C-th column, using RIGHT HAND RULE\n");
+ printf("\t--lpath R C your_maze.txt        To show the way out from the cell at R-th row and C-th column, using LEFT HAND RULE\n");
+ printf("\t--shortest R C your_maze.txt     To show the SHORTEST path through the maze\n\n");
+ printf("-\"WHY IS MY FILE INVALID???\"-\n");
+ printf("Specially for these cases I have some tips for you:\n");
+ printf("\t1. Check if the file doesn't contain other characters exept 0,1,2,3,4,5,6,7,8,9,' ','\\n'\n");
+ printf("\t2. Make sure, that all the numbers describing cells are 3-bit (in interval of 0-7)\n");
+ printf("\t3. Your maze has at least one entrance, doesn't it?\n\n");
+ printf("-\"PROGRAM FAILS WITH SOME ERROR!!!\"-\n");
+ printf("Errors that can orrur:\n");
+ printf("\tInvalid first argument - make sure you wrote it correctly\n");
+ printf("\tFile error - failed to open your file. Check if its name is correct and if it is pleced in the same directory with the program\n");
+ printf("\tInvalid row/column - there is no such a row or a column with this number\n");
+ printf("\tNo entrance coordinates given - next time type coordinates before starting the program\n");
+ printf("\tThere is no entranse here - the cell at R-th row and C-th column is not an entrance\n");
+ printf("\tInvalid - your file is invalid\n\n");
+ printf("------------------------------------------------------------------\n\n");
  //manual
  return 0;
 }
 
 
-int testfunction(Maze *maze)
+int testfunction(Map *maze)
 {
+ bool hasentrance=false; 
  for(int row=1;row<=maze->rows;row++)
  {
   for(int col=1;col<=maze->cols;col++)
-  {
+  {   
+   int cell=(row-1)*maze->cols+(col-1);	
+   if((cell==0 || cell==maze->cols-1 || cell==maze->cols*(maze->rows-1) || cell==maze->rows*maze->cols-1) && maze->cells[cell]==0)maze->cells[cell]=1<<2;
+   if((col==1 && !isborder(maze,row,col,LEFTODD)) || (col==maze->cols && !isborder(maze,row,col,LEFTODD)) || (row==1 && (row+col)%2==0 && !isborder(maze,row,col,TOP)) || (row==maze->rows && (row+col)%2==1 && !isborder(maze,row,col,BOTTOM)))hasentrance=true; 
+   if(maze->cells[(row-1)*maze->cols+col-1]==(unsigned char)~0)return false;
    if(col!=1 && isborder(maze,row,col,LEFTODD) && !isborder(maze,row,col-1,RIGHTODD))return false;
    if(col!=maze->cols && isborder(maze,row,col,RIGHTODD) && !isborder(maze,row,col+1,LEFTODD))return false;
    if((row+col)%2==0 && row!=1 && isborder(maze,row,col,TOP) && !isborder(maze,row-1,col,BOTTOM))return false;
    if((row+col)%2==1 && row!=maze->rows && isborder(maze,row,col,BOTTOM) && !isborder(maze,row+1,col,TOP))return false;
   }
  }
- return true;
+ return hasentrance;
 }
 
 
-int startborder(Maze *maze,int row,int col,int leftright)
+int startborder(Map *maze,int row,int col,int leftright)
 {
- bool lr = (leftright==RIGHTHAND);	
+ bool lr = (leftright==RIGHTHAND);
  if(col==1 && !isborder(maze,row,col,LEFTODD))
  {
   if(row%2)return (lr)? RIGHTEVEN:TOP;else return (lr)? BOTTOM:RIGHTODD;
@@ -207,18 +225,14 @@ int startborder(Maze *maze,int row,int col,int leftright)
  return ERROR;
 }
 
-int step(Maze *maze, int *row, int *col, int leftright, int *dir)
+int step(Map *maze, int *row, int *col, int leftright, int *dir)
 {
- int i=0,d,newdir;
+ int i=*dir,d,newdir;
  if(leftright==RIGHTHAND)d=1;else d=DIRECTIONS-1;// misto -1
- //printf("Here *dir is %d\n",*dir);
- while(i%DIRECTIONS != *dir)i+=d;  
-  while(isborder(maze,*row,*col,i%DIRECTIONS))i+=2*(DIRECTIONS-d);
-  *dir=(i%DIRECTIONS);
-  //printf("And here direction is %d\n",*dir);
-  newdir=(i+d)%DIRECTIONS;
-  //printf("New direction is %d\n",newdir);
- 
+ while(isborder(maze,*row,*col,i%DIRECTIONS))i+=2*(DIRECTIONS-d);
+ *dir=(i%DIRECTIONS);
+ newdir=(i+d)%DIRECTIONS;
+  
  switch(*dir)
  {
   case LEFTODD:  
@@ -241,10 +255,10 @@ int step(Maze *maze, int *row, int *col, int leftright, int *dir)
  return 0;
 }
 
-int entermaze(Maze *maze, int row, int col, int leftright)
+int entermaze(Map *maze, int row, int col, int leftright)
 {
  bool valid=testfunction(maze);
- if(!valid)return 1;
+ if(!valid)return 2;
  if(leftright==SHORTEST)return shortest(maze,row,col);
  int dir = startborder(maze,row,col,leftright);
  if(dir==ERROR)return 1;//neni vstup
@@ -258,36 +272,42 @@ enum readingmode{SKIPPING, READ_ROWS, READ_COLS};
 int main(int argc, char *argv[])
 {
  int lr, k=0;	
- if(strequal(argv[1],"--help"))return helpfunction();else
-  if(strequal(argv[1],"--rpath"))lr=RIGHTHAND;else
-   if(strequal(argv[1],"--lpath"))lr=LEFTHAND;else
-    if(strequal(argv[1],"--shortest"))lr=SHORTEST;else	
-	if(!strequal(argv[1],"--test"))//dopsat pro --shortest dole
+ if(strcmp(argv[1],"--help")==0)return helpfunction();else
+  if(strcmp(argv[1],"--rpath")==0)lr=RIGHTHAND;else
+   if(strcmp(argv[1],"--lpath")==0)lr=LEFTHAND;else
+    if(strcmp(argv[1],"--shortest")==0)lr=SHORTEST;else	
+	if(strcmp(argv[1],"--test")!=0)//dopsat pro --shortest dole
 	{
    	 fprintf(stderr,"Invalid first argument!\n");
    	 return 0;
   	}
- Maze maze={0,0,NULL};
+ Map maze={0,0,NULL};
  FILE *mazefile = fopen(argv[argc-1],"r");
  if(mazefile==NULL)
  {
-  fprintf(stderr,"Chyba v souboru!\n");	 
+  fprintf(stderr,"File error!\n");	 
   return close(mazefile,maze.cells);
  }
- int c;
- while((c=getc(mazefile))!='\n')
+ int c,dims=0;
+ while(dims != 2)
  {
+  c=fgetc(mazefile);
   static int state=SKIPPING;//stav cteni
-  if(!isdigit(c) && c!=' ')
+  if(!isdigit(c) && c!=' ' && c!='\n')
   {
-   fprintf(stderr,"V souboru bludiste znaky mimo 0123456789, ' ' a '\\n' jsou zakazane!\n");	  
-   return close(mazefile,maze.cells);//chyba znaku
+   maze.rows=0;
+   maze.cols=0;
+   break;   
   }
   if(state==SKIPPING && isdigit(c))
   {
    if(maze.rows==0)state=READ_ROWS;else state=READ_COLS;
   }
-  if(state!=SKIPPING && !isdigit(c))state=SKIPPING;
+  if(state!=SKIPPING && !isdigit(c))
+  {
+   state=SKIPPING;
+   dims++;
+  }
   if(state==READ_ROWS)
   {
    maze.rows*=10;
@@ -299,53 +319,64 @@ int main(int argc, char *argv[])
    maze.cols+=(c-'0');
   }
  }
- maze.cells=(unsigned char*)malloc(maze.rows*maze.cols*sizeof(unsigned char));
+ maze.cells=(unsigned char*)malloc((maze.rows*maze.cols+1)*sizeof(unsigned char));
+ int i=0;
+ maze.cells[0]=~0; 
  while((c=getc(mazefile))!=EOF)
  {
-  static int i=0;
   if(c==' ' || c=='\n')k=0;else k++;
   if(k>1 || c>='8')
   {
-   fprintf(stderr,"Bludiste muze byt popsano jen 3bitovymy cisly!\n");	  
-   return close(mazefile,maze.cells);//chyba znaku
+   maze.cells[0]=~0;	  
+   break;
   }
   if(i==maze.rows*maze.cols && k==1)
   {
-   fprintf(stderr,"V danem bludisti je jen %d policek, mate vice!",maze.rows*maze.cols);  
-   return close(mazefile,maze.cells);//chyba poctu
+   maze.cells[0]=~0;
+   break;
   }
   if(k==1)
   {
-   maze.cells[i]=c;
+   maze.cells[i]=(c-'0');
    i++;
   }
  }
- if(strequal(argv[1],"--test"))
+ if(i!=maze.rows*maze.cols)maze.cells[0]=~0;
+ if(strcmp(argv[1],"--test")==0)
  {
   if(!testfunction(&maze))printf("Invalid\n");else printf("Valid\n");
     return close(mazefile,maze.cells);
  }
  if(argv[2]==NULL || argv[3]==NULL)
  {
-  fprintf(stderr,"Zadejte radek a sloupec pri vstupu!\n");
+  fprintf(stderr,"No entrance coordinates given!\n");
   return close(mazefile,maze.cells);
  }
- int i=0;
+ i=0;//pouziva se jako counter
  while(isdigit(argv[2][i]) && argv[2][i]!='\0')i++;
- if(argv[2][i]!='\0' || atoi(argv[2])==0)
+ if(argv[2][i]!='\0' || atoi(argv[2])<1 || atoi(argv[2])>maze.rows)
  {
-  fprintf(stderr,"Neplatny radek!\n");
+  fprintf(stderr,"Invalid row!\n");
   return close(mazefile,maze.cells);
  }
  i=0;
  while(isdigit(argv[3][i]) && argv[3][i]!='\0')i++;
- if(argv[3][i]!='\0' || atoi(argv[3])==0)
+ if(argv[3][i]!='\0' || atoi(argv[3])<1 || atoi(argv[3])>maze.cols)
  {
-  fprintf(stderr,"Neplatny sloupec!\n");
+  fprintf(stderr,"Invalid column!\n");
   return close(mazefile,maze.cells);
  }
- if(entermaze(&maze,atoi(argv[2]),atoi(argv[3]),lr)==1)fprintf(stderr,"Tady neni vstup!\n");//indexy jsou docasne
- free(maze.cells);
- fclose(mazefile);
- return close(mazefile,maze.cells);											    
+ if((atoi(argv[2])!=1 && atoi(argv[2])!=maze.rows && atoi(argv[3])!=1 && atoi(argv[3])!= maze.cols) || (i=entermaze(&maze,atoi(argv[2]),atoi(argv[3]),lr))!=0)
+ {
+  switch(i)
+  {
+   case 0:
+   case 1:	   
+     fprintf(stderr,"There is no entrance here!\n");//indexy jsou docasne
+     break;
+   case 2:
+     fprintf(stderr,"Invalid\n");
+  }
+ }
+  return close(mazefile, maze.cells);;											    
 }
